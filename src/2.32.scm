@@ -154,3 +154,23 @@
           (get-triples n)))
 
 (s-triple 8 19)
+
+; Exercise 2.54:
+(define (equal? l1 l2)
+  (cond ((and (null? l1) (null? l2)) #t)
+        ((or (null? l1) (null? l2)) #f)
+        ((eq? (car l1) (car l2)) (equal? (cdr l1) (cdr l2)))
+        ((and (pair? (car l1)) (pair? (car l2))) (and (equal? (car l1) (car l2))
+                                                      (equal? (cdr l1) (cdr l2))))
+        ((or (pair? (car l1)) (pair? (car l2))) #f)
+        ((= (car l1) (car l2)) #t)
+        (else #f)))
+
+(equal? '(this is a list) '(this is a list)) ; #t
+(equal? '(this is a list) '(this (is a) list)) ; #f
+(equal? '(this (is 1) 7) '(this (is 1) 7)) ; #t
+
+; Exercise 2.55: TODO
+(car ''abracadabra) ; quote
+
+
