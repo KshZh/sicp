@@ -7,6 +7,7 @@ import numbers
 import operator
 import sys
 from scheme_reader import Pair, nil, repl_str
+import scheme
 
 try:
     import turtle
@@ -77,23 +78,30 @@ def scheme_eqp(x, y):
 
 @builtin("pair?")
 def scheme_pairp(x):
-    return type(x).__name__ == "Pair"
+    return type(x).__name__ == 'Pair'
 
 @builtin("scheme-valid-cdr?")
 def scheme_valid_cdrp(x):
     return scheme_pairp(x) or scheme_nullp(x) or scheme_promisep(x)
 
 # Streams
-
 @builtin("promise?")
 def scheme_promisep(x):
-    """Replace this function"""
-    return False
+    return type(x).__name__ == 'Promise'
 
+@builtin("force")
+def scheme_force(x):
+    check_type(x, scheme_promisep, 0, 'promise')
+    return x.evaluate()
+
+@builtin("cdr-stream")
+def scheme_cdr_stream(x):
+    check_type(x, lambda x: scheme_pairp(x) and scheme_promisep(x.rest), 0, 'cdr-stream')
+    return scheme_force(x.rest)
 
 @builtin("null?")
 def scheme_nullp(x):
-    return type(x).__name__ == "nil"
+    return type(x).__name__ == 'nil'
 
 @builtin("list?")
 def scheme_listp(x):
@@ -127,12 +135,12 @@ def scheme_cdr(x):
 
 # Mutation extras
 @builtin("set-car!")
-def scheme_car(x, y):
+def scheme_set_car(x, y):
     check_type(x, scheme_pairp, 0, 'set-car!')
     x.first = y
 
 @builtin("set-cdr!")
-def scheme_cdr(x, y):
+def scheme_set_cdr(x, y):
     check_type(x, scheme_pairp, 0, 'set-cdr!')
     check_type(y, scheme_valid_cdrp, 1, 'set-cdr!')
     x.rest = y
@@ -145,18 +153,18 @@ def scheme_list(*vals):
     return result
 
 @builtin("append")
-def scheme_append(*vals):
+def scheme_append(*vals): # 参数是多个Pair表示的list。
     if len(vals) == 0:
         return nil
     result = vals[-1]
-    for i in range(len(vals)-2, -1, -1):
+    for i in range(len(vals)-2, -1, -1): # 从后往前遍历传入的list。
         v = vals[i]
         if v is not nil:
             check_type(v, scheme_pairp, i, 'append')
             r = p = Pair(v.first, result)
             v = v.rest
             while scheme_pairp(v):
-                p.rest = Pair(v.first, result)
+                p.rest = Pair(v.first, result) # 头插法。
                 p = p.rest
                 v = v.rest
             result = r

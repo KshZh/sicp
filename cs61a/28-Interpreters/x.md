@@ -23,70 +23,21 @@ Here is a brief overview of each of the Read-Eval-Print Loop components in our i
 
 **设计递归不仅仅要设计终止边界、如何缩小问题规模、如何利用子问题的解构造出原问题的解。设计递归的另一个很重要的点是定义好函数的行为，如输入什么，输出什么**。
 
-注意表达式有primitive/atomic expr和compound expr，不要一提到表达式就一股脑认为是compound expr。
+注意表达式有primitive/atomic/self eval expr和compound expr，不要一提到表达式就一股脑认为是compound expr。
 
-对递归/有闭包性质的数据结构进行编程时需要注意的地方，也是很容易忽视的地方。
+- scheme_read removes enough tokens from src to form a **single expression (primitive/atomic/self eval expr or compound expr)** and returns that expression in the correct internal representation (see above table).
+- read_tail expects to read the rest of a list or pair, assuming the open parenthesis of that list or pair has already been removed by scheme_read. It will read expressions (and thus remove tokens) until the matching closing parenthesis ) is seen. This list of expressions is returned as a linked list of Pair instances.
 
-```python
-def scheme_read(src):
-    """Read the next expression from SRC, a Buffer of tokens.
+In short, scheme_read returns the next single complete expression in the buffer and read_tail returns the rest of a list or pair in the buffer. Both functions mutate the buffer, removing the tokens that have already been processed.
 
-    >>> scheme_read(Buffer(tokenize_lines(['nil'])))
-    nil
-    >>> scheme_read(Buffer(tokenize_lines(['1'])))
-    1
-    >>> scheme_read(Buffer(tokenize_lines(['true'])))
-    True
-    >>> scheme_read(Buffer(tokenize_lines(['(+ 1 2)'])))
-    Pair('+', Pair(1, Pair(2, nil)))
-    """
-    # 设计递归不仅仅要设计终止边界、如何缩小问题规模、如何利用子问题的解构造出原问题的解。
-    # XXX 设计递归的另一个很重要的点是定义好函数的行为，如输入什么，输出什么。
-    # 这里scheme_read输入token Buffer，消耗其中足够多的token，然后输出一个用python内部数据/数据结构表示的表达式。
-    # 注意表达式有primitive expr和compound expr，不要一提到表达式就一股脑认为是compound expr。
-    # 而read_tail expects to read the rest of a list or pair,
-    # assuming the open parenthesis of that list or pair has already been removed by scheme_read.
-    if src.current() is None:
-        raise EOFError
-    # BEGIN PROBLEM 1/2
-    "*** YOUR CODE HERE ***"
-    token = src.pop_first()
-    if token == '(':
-        return read_tail(src)
-    # 注意这里不是`if token is nil`，因为在我们的分词器(tokenizer)看来，nil和x这样的符号并没有什么区别，都会使用字符串来表示/存储。
-    if token is 'nil':
-        return nil
-    if token not in DELIMITERS:
-        return token
-    # END PROBLEM 1/2
+上面提到scheme_read和read_tail的行为，多读几遍。
 
-def read_tail(src):
-    """Return the remainder of a list in SRC, starting before an element or ).
+允许递归定义的数据结构，其相关的操作往往也是递归的。
 
-    >>> read_tail(Buffer(tokenize_lines([')'])))
-    nil
-    >>> read_tail(Buffer(tokenize_lines(['2 3)'])))
-    Pair(2, Pair(3, nil))
-    """
-    try:
-        if src.current() is None:
-            raise SyntaxError('unexpected end of file')
-        # BEGIN PROBLEM 1
-        "*** YOUR CODE HERE ***"
-        if src.current() == ')':
-            src.pop_first()
-            return nil
-        # 不是直接`first = src.pop_first()`，因为src.current()可能是由一个compound expr（即又一个list）而不是primitive expr。
-        # XXX 这就是在对递归/有闭包性质的数据结构进行编程时需要注意的地方，也是很容易忽视的地方。
-        first = scheme_read(src)
-        rest = read_tail(src)
-        return Pair(first, rest) # cons up when cdring down the list.
-        # END PROBLEM 1
-    except EOFError:
-        raise SyntaxError('unexpected end of file')
+```scheme
+(eval (cons 'car '('(4 2))))
+; cons会被求值，其car指向符号car，cdr指向一个list（这很重要，不能用不以nil结尾的list存储表达式），该list的第一个pair的car指向未求值的list (quote (4 2))，cdr指向nil。对这个list应用eval时，它会求值符号car，还对参数(quote (4 2))求值，得到list (4 2)，将实参应用到过程上，得到4。
 ```
 
-## Part II: The Evaluator
+https://cs61a.org/articles/scheme-spec.html#about-this-specification
 
-- While built-in procedures follow the normal rules of evaluation (evaluate operator, evaluate operands, apply operator to operands), applying the operator does *not* create a new frame.
-- 

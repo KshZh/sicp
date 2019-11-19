@@ -22,6 +22,7 @@ import numbers
 from ucb import main, trace, interact
 from scheme_tokens import tokenize_lines, DELIMITERS
 from buffer import Buffer, InputReader, LineReader
+import scheme
 
 # Pairs and Scheme lists
 
@@ -36,16 +37,15 @@ class Pair(object):
     >>> print(s.map(lambda x: x+4))
     (5 6)
     """
-    # 可以把构造函数理解为scheme中的cons，实际上Pair(1, 2)的行为看起来和(cons 1 2)没什么区别。
     def __init__(self, first, rest):
         from scheme_builtins import scheme_valid_cdrp, SchemeError
-        if not scheme_valid_cdrp(rest):
+        if not (rest is nil or isinstance(rest, Pair) or type(rest).__name__ == 'Promise'):
+            print(rest, type(rest).__name__)
             raise SchemeError("cdr can only be a pair, nil, or a promise but was {}".format(rest))
         self.first = first
         self.rest = rest
 
     def __repr__(self):
-        # 由于Pair是一个可以指向Pair的递归结构，所以它的一些操作往往也用递归实现，这样比较简洁易懂。
         return 'Pair({0}, {1})'.format(repr(self.first), repr(self.rest))
 
     def __str__(self):
@@ -79,14 +79,22 @@ class Pair(object):
             return Pair(mapped, self.rest.map(fn)) # cons up when cdring down the list。
         else:
             raise TypeError('ill-formed list (cdr is a promise)')
-    
-    # p = Pair(2, Pair(2, nil))
-    # list(p) = [2, 2]
-    # 在apply函数时获取实参Pair链表中的值有用。
+
+    def flatmap(self, fn):
+        """Return a Scheme list after flatmapping Python function FN to SELF."""
+        from scheme_builtins import scheme_append
+        mapped = fn(self.first) # mapped可能是有一个Pair表示的list。
+        if self.rest is nil or isinstance(self.rest, Pair):
+            return scheme_append(mapped, self.rest.flatmap(fn))
+        else:
+            raise TypeError('ill-formed list (cdr is a promise)')
+
+    # 自己加的，方便遍历Pair构成的list。
     def __iter__(self):
         yield self.first
         if self.rest is not nil:
             yield from iter(self.rest)
+
 
 class nil(object):
     """The empty list"""
@@ -101,6 +109,9 @@ class nil(object):
         return 0
 
     def map(self, fn):
+        return self
+
+    def flatmap(self, fn):
         return self
 
 nil = nil() # Assignment hides the nil class; there is only one instance
@@ -124,26 +135,32 @@ def scheme_read(src):
     >>> scheme_read(Buffer(tokenize_lines(['(+ 1 2)'])))
     Pair('+', Pair(1, Pair(2, nil)))
     """
-    # 设计递归不仅仅要设计终止边界、如何缩小问题规模、如何利用子问题的解构造出原问题的解。
-    # XXX 设计递归的另一个很重要的点是定义好函数的行为，如输入什么，输出什么。
-    # 这里scheme_read输入token Buffer，消耗其中足够多的token，然后输出一个用python内部数据/数据结构表示的表达式。
-    # 注意不是表达式有primitive expr和compound expr，不要一提到表达式就一股脑认为是compound expr。
-    # 而read_tail expects to read the rest of a list or pair,
-    # assuming the open parenthesis of that list or pair has already been removed by scheme_read.
     if src.current() is None:
         raise EOFError
-    # BEGIN PROBLEM 1/2
-    "*** YOUR CODE HERE ***"
-    token = src.pop_first()
-    if token == '(':
+    val = src.pop_first() # Get the first token
+    if val == 'nil':
+        # BEGIN PROBLEM 1
+        "*** YOUR CODE HERE ***"
+        return nil # 返回nil对象。
+        # END PROBLEM 1
+    elif val == '(':
+        # BEGIN PROBLEM 1
+        "*** YOUR CODE HERE ***"
         return read_tail(src)
-    if token == 
-    # 注意这里不是`if token is nil`，因为在我们的分词器(tokenizer)看来，nil和x这样的符号并没有什么区别，都会使用字符串来表示/存储。
-    if token is 'nil':
-        return nil
-    if token not in DELIMITERS:
-        return token
-    # END PROBLEM 1/2
+        # END PROBLEM 1
+    elif val in quotes:
+        # BEGIN PROBLEM 6
+        "*** YOUR CODE HERE ***"
+        if src.current() == '(':
+            src.pop_first()
+            return Pair(quotes[val], Pair(read_tail(src), nil))
+        else:
+            return Pair(quotes[val], Pair(scheme_read(src), nil))
+        # END PROBLEM 6
+    elif val not in DELIMITERS:
+        return val
+    else:
+        raise SyntaxError('unexpected token: {0}'.format(val))
 
 def read_tail(src):
     """Return the remainder of a list in SRC, starting before an element or ).
@@ -156,17 +173,19 @@ def read_tail(src):
     try:
         if src.current() is None:
             raise SyntaxError('unexpected end of file')
-        # BEGIN PROBLEM 1
-        "*** YOUR CODE HERE ***"
-        if src.current() == ')':
+        elif src.current() == ')':
+            # BEGIN PROBLEM 1
+            "*** YOUR CODE HERE ***"
             src.pop_first()
             return nil
-        # 不是直接`first = src.pop_first()`，因为src.current()可能是由一个compound expr而不是primitive expr。
-        # XXX 这就是在对递归/有闭包性质的数据结构进行编程时需要注意的地方，也是很容易忽视的地方。
-        first = scheme_read(src)
-        rest = read_tail(src)
-        return Pair(first, rest) # cons up when cdring down the list.
-        # END PROBLEM 1
+            # END PROBLEM 1
+        else:
+            # BEGIN PROBLEM 1
+            "*** YOUR CODE HERE ***"
+            first = scheme_read(src) # 注意scheme_read的语义/行为。
+            rest = read_tail(src)
+            return Pair(first, rest) # cons up when cdring down the list.
+            # END PROBLEM 1
     except EOFError:
         raise SyntaxError('unexpected end of file')
 
@@ -208,6 +227,9 @@ def read_print_loop():
             src = buffer_input('read> ')
             while src.more_on_line:
                 expression = scheme_read(src)
+                if expression == 'exit':
+                    print()
+                    return
                 print('str :', expression)
                 print('repr:', repr(expression))
         except (SyntaxError, ValueError) as err:

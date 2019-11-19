@@ -67,12 +67,12 @@ def next_candidate_token(line, k):
             token = next(gen) # 一个带一对双引号的符号。
             if token.type != tokenize.STRING:
                 raise ValueError("invalid string: {0}".format(token.string))
-            return token.string, token.end[1]+k # 返回符号，符号在python中表示为一个字符串。
+            return token.string, token.end[1]+k
         else:
             j = k
             while j < len(line) and line[j] not in _TOKEN_END:
                 j += 1
-            return line[k:j], min(j, len(line)) # 返回一个符号。
+            return line[k:j], min(j, len(line))
     return None, len(line)
 
 def tokenize_line(line):
@@ -82,7 +82,7 @@ def tokenize_line(line):
     while text is not None:
         if text in DELIMITERS:
             result.append(text)
-        elif text == '#t' or text.lower() == 'true': # 大小写不敏感，程序内部处理和输出的都是小写。
+        elif text == '#t' or text.lower() == 'true':
             result.append(True)
         elif text == '#f' or text.lower() == 'false':
             result.append(False)
@@ -106,7 +106,7 @@ def tokenize_line(line):
                 else:
                     raise ValueError("invalid numeral or symbol: {0}".format(text))
         elif text[0] in _STRING_DELIMS:
-            result.append(text) # 带引号的字符串。
+            result.append(text)
         else:
             print("warning: invalid token: {0}".format(text), file=sys.stderr)
             print("    ", line, file=sys.stderr)
