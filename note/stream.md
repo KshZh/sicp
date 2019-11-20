@@ -35,7 +35,7 @@ With streams we can achieve the best of both worlds: We can formulate programs e
 
 cons-stream是一个special form，`(cons-stream <a> <b>)`等价于`(cons <a> (delay <b>))`。也就是，实现上，stream是一个pair，car指向已计算过/求值过的元素，cdr指向一个promise。当请求car时，简单地返回car指针，当请求cdr时，即时对promise求值，产生又一个pair，同样，它的car指向已计算过/求值过的元素，cdr指向又一个promise，然后cdr操作会返回指向这个pair的指针。
 
-注意，stream不是list，也不是一个连一个的pair，它只是就一个pair。（虽然对象存储上，该pair前面可能有其它被消耗过的pair指向该pair）另外注意，pair的car指向的已求值过的元素往往是单例的，变的（如创建）往往只是pair本身。
+注意，stream不是list，也不是一个连一个的pair，它**只是就一个pair**。（虽然对象存储上，该pair前面可能有其它被消耗过的pair指向该pair）另外注意，pair的car指向的已求值过的元素往往是单例的，变的（如创建）往往只是pair本身。
 
 ```scheme
 (define p (delay (+ 2 3)))
