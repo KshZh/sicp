@@ -1,0 +1,17 @@
+python的环境模型和scheme很像，都是键值对的集合，python中的变量也是符号，可以不引用任何实体对象，也可以引用某些实体对象。这也很自然地决定了python定义变量的语法。
+
+```python
+class foo:
+	def __init__(self):
+		self.x = 1
+		
+# foo f # error
+# foo f() # error
+f = foo # 变量f指向class foo。
+f = foo() # 变量f指向class foo的实例对象。
+
+# 类似的有：
+l = [1, 2, "ds"]
+t = (1, 2)
+s = "xxxx"
+```
